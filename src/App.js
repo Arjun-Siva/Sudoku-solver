@@ -4,7 +4,7 @@ import Grid from './components/Grid/Grid';
 function App() {
   return (
     <div>
-      arjun
+      Sudoku
       <Grid/>
     </div>
   );

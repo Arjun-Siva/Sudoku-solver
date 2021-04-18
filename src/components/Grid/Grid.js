@@ -17,7 +17,7 @@ class Grid extends Component{
         for (let row = 0; row < 9; row++) {
             for (let col = 0; col < 9; col++) {
                 cells[row][col] = {
-                    val : null,
+                    val : "",
                     unstable : false,
                     fixed: false,
                 }
@@ -27,7 +27,14 @@ class Grid extends Component{
     }
 
     handleChange = (row,col,newVal) => {
+        var newArray = [];
 
+        for (var i = 0; i < 9; i++)
+            newArray[i] = this.state.cells[i].slice()
+            
+        newArray[row][col].val = newVal;
+        this.setState({cells: newArray});
+        console.log(`Changed state:${newVal}`)
     }
 
     render(){
@@ -35,17 +42,22 @@ class Grid extends Component{
             <div>
                 {
                     [...Array(9).keys()].map( (r) => {
+                        return <div style={{display:'flex'}}>
+                        {
                         [...Array(9).keys()].map( (c) => {
                             let details = {...this.state.cells[r][c]};
+                            //let y = r*10 + c;
                             return <Cell 
                                     row={r} 
                                     col={c} 
-                                    val={details.val} 
+                                    //val={details.val} 
                                     unstable={details.unstable} 
                                     fixed={details.fixed} 
-                                    onChange={()=>this.handleChange()}
+                                    onChange={this.handleChange}
                                     />
                         })
+                        }
+                        </div>
                     })
                 }
             </div>
