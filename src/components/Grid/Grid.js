@@ -32,26 +32,25 @@ class Grid extends Component{
 
         for (var i = 0; i < 9; i++)
             newArray[i] = this.state.cells[i].slice()
-            
+        
         newArray[row][col].val = newVal;
+        if(newVal < 1 || newVal > 9)
+            newArray[row][col].unstable = true;
 
         var updatedMatrix = this.checkStability(newArray, row, col);
         this.setState({cells: updatedMatrix});
-        console.log(`Changed state:${newVal}`)
     }
 
     checkStability = (newArray, row, col) => {
         var block = newArray[row][col].block;
-        console.log("checking stability")
         //check entire row
         for(var i = 0; i < 9; i++) {
             if(i===col)
                 continue;
 
-            if(newArray[row][i] === newArray[row][col]){
+            if(newArray[row][i].val === newArray[row][col].val){
                 newArray[row][i].unstable = true;
                 newArray[row][col].unstable = true;
-                console.log(`Change row stab ${row},${i}`)
             }
         }
 
@@ -60,7 +59,7 @@ class Grid extends Component{
             if(j===row)
                 continue;
 
-            if(newArray[j][col] === newArray[row][col]){
+            if(newArray[j][col].val === newArray[row][col].val){
                 newArray[j][col].unstable = true;
                 newArray[row][col].unstable = true;
             }
@@ -71,7 +70,7 @@ class Grid extends Component{
             for (var c = 0; c < 9; c++) {
                 if(r===row && c===col)
                     continue;
-                if(newArray[r][c].block === block){
+                if(newArray[r][c].block === block && newArray[r][c].val === newArray[row][col].val){
                     newArray[r][c].unstable = true;
                     newArray[row][col].unstable = true;
                 }

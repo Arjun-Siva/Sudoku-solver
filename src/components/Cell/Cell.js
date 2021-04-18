@@ -6,13 +6,20 @@ class Cell extends Component{
         this.props.onChange(this.props.row, this.props.col, val);
     }
 
+    addUnstability = () => {
+        if(this.props.unstable)
+            return " Unstable";
+        else
+            return "";
+    }
+
     render(){
 
         return(
             <div>
                 <input type="number" min="1" max="9" 
                     onChange={event => {this.handleChange(event.target.value)}} 
-                    className={"Input"+(this.props.unstable) ? " Unstable" : ""}/>
+                    className={"Input"+ this.addUnstability()}/>
             </div>
         )
     }
