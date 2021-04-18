@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import './Cell.css';
 
 class Cell extends Component{
     handleChange = (val) => {
@@ -9,7 +10,9 @@ class Cell extends Component{
 
         return(
             <div>
-                <input type="number" min="1" max="9" onChange={event => {this.handleChange(event.target.value)}} />
+                <input type="number" min="1" max="9" 
+                    onChange={event => {this.handleChange(event.target.value)}} 
+                    className={"Input"+(this.props.unstable) ? " Unstable" : ""}/>
             </div>
         )
     }
