@@ -6,7 +6,20 @@ class Grid extends Component{
         super(props);
         this.state = {
             cells:this.initCells(),
+            block_starting_index: this.blockIndices(),
+            possible_placeholders: 0,
         };
+    }
+
+    blockIndices = () => {
+        var block_ind = {};var i = 0;
+        for(let r = 0; r < 3;r++) {
+            for( let c = 0; c < 3; c++) {
+                block_ind[i] = [r*3,c*3];
+                i++;
+            }
+        }
+        return block_ind;
     }
 
     initCells = () => {
@@ -35,9 +48,6 @@ class Grid extends Component{
         newArray[row][col].val = newVal;
 
         let updatedMatrix = this.checkAllCellsStability(newArray);
-        if((newVal < 1 || newVal > 9) && newVal!==""){
-            updatedMatrix[row][col].unstable = true;
-        }
         this.setState({cells: updatedMatrix});
     }
 
@@ -69,12 +79,16 @@ class Grid extends Component{
             }
         }
 
-        //check block
-        for (let r = 0; r < 9; r++) {
-            for (let c = 0; c < 9; c++) {
+        var [i, j] = this.state.block_starting_index[block];
+        for(let r=i;r<i+3;r++) {
+            for(let c=j;c<j+3;c++) {
+                if((parseInt(newArray[r][c].val) > 9 || parseInt(newArray[r][c].val) < 1) && newArray[r][c].val !== "")
+                    newArray[r][c].unstable = true;
+
                 if(r===row && c===col)
                     continue;
-                if(newArray[r][c].block === block && newArray[r][c].val === newArray[row][col].val){
+
+                if(newArray[r][c].val === newArray[row][col].val){
                     newArray[r][c].unstable = true;
                     newArray[row][col].unstable = true;
                 }
@@ -99,23 +113,8 @@ class Grid extends Component{
         return cellArray;
     }
 
-    fixNumbers = () => {
-        let newArray = [];
-
-        for (var i = 0; i < 9; i++)
-            newArray[i] = this.state.cells[i].slice()
-    
-        for (let i = 0; i<9; i++) {
-            for (let j = 0; j<9; j++) {
-                if(newArray[i][j].val !== "")
-                    newArray[i][j].fixed = true;
-            }
-        }
-        this.setState({cells: newArray})
-    }
-
     possibleNumbers = (tempArray, row, col) => {
-        let available = ["1","2","3","4","5","6","7","8","9"];
+        var available = ["1","2","3","4","5","6","7","8","9"];
         for (let i = 0; i < 9; i++) {
             let index = available.indexOf(tempArray[row][i].val);
             if (index > -1) {
@@ -131,18 +130,32 @@ class Grid extends Component{
 
         var block = tempArray[row][col].block;
 
-        for (let r = 0; r < 9; r++) {
-            for (let c = 0; c < 9; c++) {
-                if (tempArray[r][c].block === block) {
-                    let index = available.indexOf(tempArray[r][c].val);
-                    if (index > -1) {
-                        available.splice(index, 1);
-                    }
+        let [c, r] = this.state.block_starting_index[block];
+        for(let i=r;r<r+3;i++) {
+            for(let j=c;j<c+3;j++) {
+                let index = available.indexOf(tempArray[i][j].val);
+                if (index > -1) {
+                    available.splice(index, 1);
                 }
             }
         }
 
         return available;
+    }
+
+    nextCellToSolve = (cells_and_possible) => {
+        var min = 10, r = -1, c = -1;
+        for(var row in cells_and_possible) {
+            for(var col in cells_and_possible[row]) {
+                if(cells_and_possible[row][col].length < min && cells_and_possible[row][col].length > 0) {
+                    min = cells_and_possible[row][col].length;
+                    r = row;
+                    c = col;
+                }
+            }
+        }
+
+        return [r,c];
     }
 
     solvePuzzle = () => {
@@ -167,8 +180,53 @@ class Grid extends Component{
             }
         }
 
-        console.log(cells_and_possible);
+        var [next_r,next_c] = this.nextCellToSolve(cells_and_possible);
+        var [success, newCellArray] = this.recursiveBackTrack(cellArray,cells_and_possible,next_r,next_c)
+        if(success)
+            this.setState({cells:newCellArray});
+        else
+            console.log("Failed :(");
+            
     }
+
+    recursiveBackTrack = (cellArray, cells_and_possible, row, col) => {
+        var available = cells_and_possible[row][col];
+        for(var newVal in available) {
+            cellArray[row][col].val = newVal;
+
+            for(let i = 0; i < 9; i++) {
+                if(i===col)
+                    continue;
+    
+                cells_and_possible[row][i] = this.possibleNumbers(cellArray, row, i);
+            }
+    
+            //check entire column
+            for(let j = 0; j < 9; j++) {
+                if(j===row)
+                    continue;
+    
+                cells_and_possible[j][col] = this.possibleNumbers(cellArray, j, col);
+            }
+
+            var block = cellArray[row][col].block;    
+            var [i, j] = this.state.block_starting_index[block];
+            for(let r=i;r<i+3;r++) {
+                for(let c=j;c<j+3;c++) {
+                    cells_and_possible[i][j] = this.possibleNumbers(cellArray, i, j);
+                }
+            }
+
+            var [next_r,next_c] = this.nextCellToSolve(cells_and_possible);
+            if(next_r === -1 && next_c === -1)
+                return cellArray;
+                
+            var [success, newCellArray] = this.recursiveBackTrack(cellArray, cells_and_possible, next_r, next_c);
+            if(success)
+                return ([true, newCellArray])
+        }
+        return [false,null];
+    } 
 
     render() {
         return(
