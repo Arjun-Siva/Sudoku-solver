@@ -19,7 +19,8 @@ class Cell extends Component{
             <div>
                 <input type="number" min="1" max="9" 
                     onChange={event => {this.handleChange(event.target.value)}} 
-                    className={"Input"+ this.addUnstability()}/>
+                    className={"Input"+ this.addUnstability()}
+                    value={this.props.val}/>
             </div>
         )
     }

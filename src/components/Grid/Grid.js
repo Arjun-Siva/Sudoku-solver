@@ -7,7 +7,6 @@ class Grid extends Component{
         this.state = {
             cells:this.initCells(),
             block_starting_index: this.blockIndices(),
-            possible_placeholders: 0,
         };
     }
 
@@ -40,10 +39,7 @@ class Grid extends Component{
     }
 
     handleChange = (row,col,newVal) => {
-        let newArray = [];
-
-        for (var i = 0; i < 9; i++)
-            newArray[i] = this.state.cells[i].slice()
+        let newArray = JSON.parse(JSON.stringify(this.state.cells));
         
         newArray[row][col].val = newVal;
 
@@ -114,15 +110,20 @@ class Grid extends Component{
     }
 
     possibleNumbers = (tempArray, row, col) => {
+        if(tempArray[row][col].val !== "")
+            return [];
+        
         var available = ["1","2","3","4","5","6","7","8","9"];
+        let index;
         for (let i = 0; i < 9; i++) {
-            let index = available.indexOf(tempArray[row][i].val);
+            index = available.indexOf(tempArray[row][i].val);
+            // console.log("index:"+index)
             if (index > -1) {
                 available.splice(index, 1);
             }
         }
         for (let i = 0; i < 9; i++) {
-            let index = available.indexOf(tempArray[i][col].val);
+            index = available.indexOf(tempArray[i][col].val);
             if (index > -1) {
                 available.splice(index, 1);
             }
@@ -130,103 +131,143 @@ class Grid extends Component{
 
         var block = tempArray[row][col].block;
 
-        let [c, r] = this.state.block_starting_index[block];
-        for(let i=r;r<r+3;i++) {
+        let [r, c] = this.state.block_starting_index[block];
+        for(let i=r;i<r+3;i++) {
             for(let j=c;j<c+3;j++) {
-                let index = available.indexOf(tempArray[i][j].val);
+                index = available.indexOf(tempArray[i][j].val);
                 if (index > -1) {
                     available.splice(index, 1);
                 }
             }
         }
-
+        //console.log("Returning possible:"+available);
         return available;
+    }
+
+    updateCellsAndPossible = (cellsArray) => {
+        let cells = JSON.parse(JSON.stringify(cellsArray));
+        var cells_and_possible = Array(9);
+
+        for(let i = 0; i < 9;i++){
+            cells_and_possible[i] = Array(9);
+        }
+
+        for(let i = 0; i < 9; i++) {
+            for(let j = 0; j < 9; j++) {
+                cells_and_possible[i][j] = this.possibleNumbers(cells, i , j);
+            }
+        }
+
+        return cells_and_possible;
     }
 
     nextCellToSolve = (cells_and_possible) => {
         var min = 10, r = -1, c = -1;
-        for(var row in cells_and_possible) {
-            for(var col in cells_and_possible[row]) {
+        for(let row=0;row<9;row++) {
+            for(let col=0;col<9;col++) {
+                try{
                 if(cells_and_possible[row][col].length < min && cells_and_possible[row][col].length > 0) {
                     min = cells_and_possible[row][col].length;
                     r = row;
                     c = col;
+                }}
+                catch(error){
+                    console.log("cell&arr:"+cells_and_possible);
+                    window.stop();
                 }
             }
         }
-
+        console.log("r:"+r+",c:"+c+",no.:"+min);
         return [r,c];
     }
 
-    solvePuzzle = () => {
-        var cellArray = this.state.cells;
-        var cells_and_possible = {};
-        for (let i = 0; i < 9; i++) {
-            for (let j = 0; j < 9; j++) {
-                if(cellArray[i][j].val !== ""){
-                    continue;
-                }
-                else{
-                    let available = this.possibleNumbers(cellArray, i, j);
-                    
-                    try{
-                        cells_and_possible[i][j] = available;
-                    }
-                    catch(err){
-                        cells_and_possible[i] = {};
-                        cells_and_possible[i][j] = available;
-                    }
-                }
+    notComplete = (cells) => {
+        for(let i = 0; i< 9; i++) {
+            for(let j = 0; j < 9; j++){
+                if(cells[i][j].val === "")
+                    return true;
             }
         }
-
-        var [next_r,next_c] = this.nextCellToSolve(cells_and_possible);
-        var [success, newCellArray] = this.recursiveBackTrack(cellArray,cells_and_possible,next_r,next_c)
-        if(success)
-            this.setState({cells:newCellArray});
-        else
-            console.log("Failed :(");
-            
+        return false;
     }
 
-    recursiveBackTrack = (cellArray, cells_and_possible, row, col) => {
-        var available = cells_and_possible[row][col];
-        for(var newVal in available) {
-            cellArray[row][col].val = newVal;
-
-            for(let i = 0; i < 9; i++) {
-                if(i===col)
-                    continue;
-    
-                cells_and_possible[row][i] = this.possibleNumbers(cellArray, row, i);
-            }
-    
-            //check entire column
-            for(let j = 0; j < 9; j++) {
-                if(j===row)
-                    continue;
-    
-                cells_and_possible[j][col] = this.possibleNumbers(cellArray, j, col);
-            }
-
-            var block = cellArray[row][col].block;    
-            var [i, j] = this.state.block_starting_index[block];
-            for(let r=i;r<i+3;r++) {
-                for(let c=j;c<j+3;c++) {
-                    cells_and_possible[i][j] = this.possibleNumbers(cellArray, i, j);
-                }
-            }
-
-            var [next_r,next_c] = this.nextCellToSolve(cells_and_possible);
-            if(next_r === -1 && next_c === -1)
-                return cellArray;
-                
-            var [success, newCellArray] = this.recursiveBackTrack(cellArray, cells_and_possible, next_r, next_c);
-            if(success)
-                return ([true, newCellArray])
+    solvePuzzle = () =>{
+        let cells = JSON.parse(JSON.stringify(this.state.cells));
+        var cells_and_possible = Array(9);
+        var last = {};
+        for(let i = 0; i < 9;i++){
+            cells_and_possible[i] = Array(9);
         }
-        return [false,null];
-    } 
+        for(let i = 0; i < 9; i++) {
+            last[i] = {};
+            for(let j = 0; j < 9; j++) {
+                cells_and_possible[i][j] = this.possibleNumbers(cells, i , j);
+                last[i][j] = 0;
+            }
+        }
+
+        
+        let available;
+        var [r,c] = this.nextCellToSolve(cells_and_possible);
+        var prev = [r,c];
+        while(this.notComplete(cells)) {
+            if([r,c] === [-1,-1]){
+                [r,c] = prev;
+                continue;
+            }
+            console.log([r,c]);
+            available = cells_and_possible[r][c];
+            if(available.length === 0) {
+                [r,c] = prev;
+            }
+            else{
+                cells[r][c].val = available[last[r][c]];
+                last[r][c] = last[r][c] + 1;
+                cells_and_possible = this.updateCellsAndPossible(cells);
+                [r,c] = this.nextCellToSolve(cells_and_possible);
+                prev = [r,c];
+            }
+            
+        }
+        this.setState({cells: cells});
+    }
+
+    recursiveBacktrack = (cellsArray , r, c, count) => {
+        let cells = JSON.parse(JSON.stringify(cellsArray));
+        console.log(count);
+        if(r>8) {
+            return [true, cells];
+        }
+        let next_r, next_c;
+
+        if(c===8) {
+            next_r = r + 1;
+            next_c = 0;
+        }
+        else{
+            next_r = r;
+            next_c = c+1;
+        }
+
+        if( cells[r][c].val !== "") {
+            return this.recursiveBacktrack(cells, next_r, next_c, count+1);
+        }
+        else {
+            var available = this.possibleNumbers(cells,r,c);
+            available.forEach((num) => {
+                cells[r][c].val = num;
+                let [success, newCells] = this.recursiveBacktrack(cells, next_r, next_c, count+1);
+                if(success) {
+                    return [true, newCells];
+                }
+            });
+            console.log("Failed at:"+r+","+c);
+            cells[r][c].val = "";
+            return [false, cells];
+        }
+    }
+    
+    
 
     render() {
         return(
@@ -237,11 +278,12 @@ class Grid extends Component{
                         {
                         [...Array(9).keys()].map( (c) => {
                             let details = {...this.state.cells[r][c]};
-                            return <Cell 
+                            return <Cell
                                     row={r} 
                                     col={c}
                                     unstable={details.unstable}
                                     onChange={this.handleChange}
+                                    val={details.val}
                                     />
                         })
                         }
