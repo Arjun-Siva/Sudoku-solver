@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import Cell from './../Cell/Cell';
+
 class Grid extends Component{
     constructor(props){
         super(props);
@@ -117,7 +118,6 @@ class Grid extends Component{
         let index;
         for (let i = 0; i < 9; i++) {
             index = available.indexOf(tempArray[row][i].val);
-            // console.log("index:"+index)
             if (index > -1) {
                 available.splice(index, 1);
             }
@@ -140,11 +140,10 @@ class Grid extends Component{
                 }
             }
         }
-        //console.log("Returning possible:"+available);
         return available;
     }
 
-    updateCellsAndPossible = (cell_n_p,cellsArray,row,col) => {
+    updateCellsAndPossible = (cell_n_p, cellsArray, row, col) => {
         var cells_and_possible = JSON.parse(JSON.stringify(cell_n_p));
 
         for(let i = 0; i < 9; i++) {
@@ -161,7 +160,7 @@ class Grid extends Component{
         const [r, c] = this.block_starting_index[block];
         for(let i=r;i<r+3;i++) {
             for(let j=c;j<c+3;j++) {
-                if(cellsArray[i][col].val === "")
+                if(cellsArray[i][j].val === "")
                     cells_and_possible[i][j] = this.possibleNumbers(cellsArray, i, j);
             }
         }
@@ -173,76 +172,106 @@ class Grid extends Component{
         var min = 10, r = -1, c = -1;
         for(let row=0;row<9;row++) {
             for(let col=0;col<9;col++) {
-                try{
                 if(cells_and_possible[row][col].length < min && cells[row][col].val === "") {
                     min = cells_and_possible[row][col].length;
                     r = row;
                     c = col;
-                }}
-                catch(error){
-                    console.log("cell&arr:"+cells_and_possible);
-                    window.stop();
                 }
             }
         }
-        //console.log("r:"+r+",c:"+c+",no.:"+min);
         return [r,c];
     }
 
-    solvePuzzle = () =>{
-        let cells = JSON.parse(JSON.stringify(this.state.cells));
+    generateCellsAndPossible = (cells) => {
         var cells_and_possible = Array(9);
         for(let i = 0; i < 9;i++){
             cells_and_possible[i] = Array(9);
         }
+
         for(let i = 0; i < 9; i++) {
             for(let j = 0; j < 9; j++) {
                 cells_and_possible[i][j] = this.possibleNumbers(cells, i , j);
             }
         }
-        
+
+        return cells_and_possible;
+    }
+
+    solvePuzzle = () => {
+        let cells = JSON.parse(JSON.stringify(this.state.cells));
+        var cells_and_possible = this.generateCellsAndPossible(cells);
         var [nextr,nextc] = this.nextCellToSolve(cells_and_possible,cells);
         let suc = this.recursiveSolve(cells, cells_and_possible,nextr,nextc);
-        console.log("count:" + this.backtrackCount);
+        if(suc) {
+            console.log(this.backtrackCount);
+        }
+        else{
+            alert("No solutions exist")
+        }
     }
     
     recursiveSolve(cellsArray, cells_n_p, r, c) {
         this.backtrackCount = this.backtrackCount + 1;
-        if(r === -1 || c === -1) {
-            this.setState({cells: cellsArray});
-
-            return true;
-        }
+        console.log(this.backtrackCount)
         var nextr, nextc;
         var cells = JSON.parse(JSON.stringify(cellsArray));
         var cells_and_possible = JSON.parse(JSON.stringify(cells_n_p));
-        //console.log("current cell:"+r+","+c);
+
+        if(r === -1 || c === -1) {
+            this.setState({cells: cells});
+            return true;
+        }
 
         const possibleNos = cells_and_possible[r][c];
-        possibleNos.forEach(num => {
-            //console.log(r,c,num);
+        for(let i = 0; i< possibleNos.length; i++) {
+            var num = possibleNos[i];
             cells[r][c].val = num;
             cells_and_possible = this.updateCellsAndPossible(cells_and_possible, cells, r, c);
             [nextr,nextc] = this.nextCellToSolve(cells_and_possible,cells);
-            let success = this.recursiveSolve(cells, cells_and_possible, nextr, nextc);
+
+            const success = this.recursiveSolve(cells, cells_and_possible, nextr, nextc);
+
             if(success) {
-                //console.log("success"+r+","+c)
-                // return ([true, newCells]);
                 return true;
             }
-            //console.log("Failed at:"+r+","+c);
-        });
-        //console.log("All tries failed:"+r+","+c);
+        };
+        console.log(`Failed at ${r}, ${c}`);
         return false;
-        
+    }
+
+    generatePuzzle = () => {
+        const n = Math.floor(Math.random() * 80) + 7;
+        var rows = Array(n);
+        var cols = Array(n);
+
+        for(let i = 0; i < n; i++) {
+            rows[i] = Math.floor(Math.random() * 8);
+            cols[i] = Math.floor(Math.random() * 8);
+        }
+        var cells = this.initCells();
+        var cells_and_possible = this.generateCellsAndPossible(cells);
+        var r,c;
+
+        for(let i = 0; i < n; i++) {
+            r = rows[i]; c = cols[i];
+            if(cells_and_possible[r][c].length > 0) {
+                cells[r][c].val = cells_and_possible[r][c][0];
+            }
+            else {
+                cells[r][c].val = "";
+            }
+            cells_and_possible = this.updateCellsAndPossible(cells_and_possible, cells, r, c);
+        }
+
+        this.setState({cells:cells});
     }
 
     render() {
         return(
-            <div>
+            <div className="Container">
                 {
                     [...Array(9).keys()].map( (r) => {
-                        return <div style={{display:'flex'}}>
+                        return <div style={{display:'flex'}} className="box">
                         {
                         [...Array(9).keys()].map( (c) => {
                             let details = {...this.state.cells[r][c]};
@@ -259,6 +288,7 @@ class Grid extends Component{
                     })
                 }
                 <button onClick = {() => this.solvePuzzle()}>Solve</button>
+                <button onClick = {() => this.generatePuzzle()}>Generate puzzle</button>
             </div>
         )
     }
