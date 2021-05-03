@@ -79,7 +79,7 @@ class Grid extends Component{
         var [i, j] = this.block_starting_index[block];
         for(let r=i;r<i+3;r++) {
             for(let c=j;c<j+3;c++) {
-                if((parseInt(newArray[r][c].val) > 9 || parseInt(newArray[r][c].val) < 1) && newArray[r][c].val !== "")
+                if(! ["1","2","3","4","5","6","7","8","9",""].includes(newArray[r][c].val))
                     newArray[r][c].unstable = true;
 
                 if(r===row && c===col)
@@ -199,11 +199,21 @@ class Grid extends Component{
 
     solvePuzzle = () => {
         let cells = JSON.parse(JSON.stringify(this.state.cells));
+
+        for(let i = 0; i < 9; i++) {
+            for(let j = 0; j < 9; j++) {
+                if(cells[i][j].unstable){
+                    alert("Invalid inputs");
+                    return;
+                }
+            }
+        }
         var cells_and_possible = this.generateCellsAndPossible(cells);
         var [nextr,nextc] = this.nextCellToSolve(cells_and_possible,cells);
-        let suc = this.recursiveSolve(cells, cells_and_possible,nextr,nextc);
+        let [suc,newCells] = this.recursiveSolve(cells, cells_and_possible,nextr,nextc);
         if(suc) {
             console.log(this.backtrackCount);
+            this.setState({cells: newCells});
         }
         else{
             alert("No solutions exist")
@@ -218,8 +228,8 @@ class Grid extends Component{
         var cells_and_possible = JSON.parse(JSON.stringify(cells_n_p));
 
         if(r === -1 || c === -1) {
-            this.setState({cells: cells});
-            return true;
+            //this.setState({cells: cells});
+            return [true,cells];
         }
 
         const possibleNos = cells_and_possible[r][c];
@@ -229,33 +239,34 @@ class Grid extends Component{
             cells_and_possible = this.updateCellsAndPossible(cells_and_possible, cells, r, c);
             [nextr,nextc] = this.nextCellToSolve(cells_and_possible,cells);
 
-            const success = this.recursiveSolve(cells, cells_and_possible, nextr, nextc);
+            const [success, newCells] = this.recursiveSolve(cells, cells_and_possible, nextr, nextc);
 
             if(success) {
-                return true;
+                return [true, newCells];
             }
         };
-        console.log(`Failed at ${r}, ${c}`);
-        return false;
+        //console.log(`Failed at ${r}, ${c}`);
+        return [false, cells];
     }
 
     generatePuzzle = () => {
-        const n = Math.floor(Math.random() * 80) + 7;
-        var rows = Array(n);
-        var cols = Array(n);
+        var rows = Array(10);
+        var cols = Array(10);
 
-        for(let i = 0; i < n; i++) {
-            rows[i] = Math.floor(Math.random() * 8);
-            cols[i] = Math.floor(Math.random() * 8);
+        for(let i = 0; i < 5; i++) {
+            rows[i] = Math.floor(Math.random() * 9);
+            cols[i] = Math.floor(Math.random() * 9);
         }
+
         var cells = this.initCells();
         var cells_and_possible = this.generateCellsAndPossible(cells);
-        var r,c;
+        var r,c, randR, randC;
 
-        for(let i = 0; i < n; i++) {
+        for(let i = 0; i < 5; i++) {
             r = rows[i]; c = cols[i];
             if(cells_and_possible[r][c].length > 0) {
-                cells[r][c].val = cells_and_possible[r][c][0];
+                let randind = Math.floor( Math.random() * cells_and_possible[r][c].length);
+                cells[r][c].val = cells_and_possible[r][c][randind];
             }
             else {
                 cells[r][c].val = "";
@@ -263,7 +274,20 @@ class Grid extends Component{
             cells_and_possible = this.updateCellsAndPossible(cells_and_possible, cells, r, c);
         }
 
-        this.setState({cells:cells});
+        var [nextr,nextc] = this.nextCellToSolve(cells_and_possible,cells);
+        let [suc,newCells] = this.recursiveSolve(cells, cells_and_possible,nextr,nextc);
+        if(suc) {
+            const n = Math.floor( Math.random() * 60) + 20;
+            for(let j = 0; j < n; j++) {
+                randR = Math.floor(Math.random() * 9);
+                randC = Math.floor(Math.random() * 9);
+                newCells[randR][randC].val = "";
+            }
+            this.setState({cells: newCells});
+        }
+        else{
+            this.generateSolvablePuzzle();
+        }   
     }
 
     render() {
