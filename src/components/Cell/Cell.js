@@ -16,11 +16,12 @@ class Cell extends Component{
     render(){
 
         return(
-            <div>
+            <div className={"r"+ this.props.row + " c"+ this.props.col}>
                 <input type="number" min="1" max="9" 
                     onChange={event => {this.handleChange(event.target.value)}} 
                     className={"Input"+ this.addUnstability()}
-                    value={this.props.val}/>
+                    value={this.props.val}
+                />
             </div>
         )
     }

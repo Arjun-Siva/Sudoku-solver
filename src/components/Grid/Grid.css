@@ -1,0 +1,63 @@
+.Container {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: center;
+    align-self: center;
+    padding-left: 2%;
+    padding-right: 2%;
+}
+
+.Buttons {
+    padding-top: 2%;
+    display: flex;
+    align-items:stretch;
+}
+
+.solve {
+    transition-duration: 0.4s;
+    flex:1;
+    border-width: 0.25em;
+}
+  
+.solve:hover {
+    background-color: #4CAF50; /* Green */
+    color: white;
+}
+
+.generate {
+    transition-duration: 0.4s;
+    margin-left: 10%;
+    margin-right: 10%;
+    flex:1;
+    border-width: 0.25em;
+}
+
+.generate:hover {
+    background-color: rgb(56, 56, 187);
+    color: white;
+}
+
+.reset {
+    transition-duration: 0.4s;
+    margin-right: 10%;
+    flex:1;
+    border-width: 0.25em;
+}
+
+.reset:hover {
+    background-color: rgb(228, 70, 83);
+    color: white;
+}
+
+
+.Column {
+    display: flex;
+    align-self:center;
+}
+
+.Heuristic{
+    align-items: center;
+    padding-bottom: 2%;
+}
+

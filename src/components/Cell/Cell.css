@@ -6,6 +6,7 @@
 }
 
 .Unstable{
+    transition-duration: 0.4s;
     background-color: rgb(194, 67, 67);
     color: #FFF;
 }
@@ -17,5 +18,17 @@ input[type=number]::-webkit-outer-spin-button {
 }
 
 input[type=number]{
-    font-size: 24px;
+    font-size: 1.5em;
+}
+
+.r3, .r6 {
+    margin-top: 0.75em;
+}
+
+.c3, .c6 {
+    margin-left: 0.5em;
+}
+
+.c2, .c5 {
+    margin-right: 0.5em;
 }

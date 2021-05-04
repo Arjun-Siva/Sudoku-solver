@@ -1,17 +1,20 @@
 import React, { Component } from 'react';
 import Cell from './../Cell/Cell';
+import './Grid.css';
 
 class Grid extends Component{
     constructor(props){
         super(props);
         this.state = {
             cells:this.initCells(),
+            useHeuristic: true,
         };
         this.block_starting_index = this.blockIndices();
         this.backtrackCount = 0;
     }
 
     blockIndices = () => {
+        // Stores the starting indices of the each block/sector
         var block_ind = {};var i = 0;
         for(let r = 0; r < 3;r++) {
             for( let c = 0; c < 3; c++) {
@@ -23,6 +26,7 @@ class Grid extends Component{
     }
 
     initCells = () => {
+        // Initiate all cells/squares to empty string
         let cells = new Array(9);
         for (let index = 0; index < 9; index++) {
             cells[index] = new Array(9);            
@@ -32,23 +36,42 @@ class Grid extends Component{
                 cells[row][col] = {
                     val : "",
                     unstable : false,
-                    block: 3*Math.floor(row/3) + Math.floor(col/3),
+                    block: 3 * Math.floor(row/3) + Math.floor(col/3),
                 }
             }
         }
         return cells;
     }
 
-    handleChange = (row,col,newVal) => {
+    toggleHeuristic = (event) => {
+        // To use or not use heuristic
+        let value = event.target.value;
+        if (value === "YES") {
+            this.setState({useHeuristic: true});
+        }
+        else{
+            this.setState({useHeuristic: false});
+        }
+    }
+
+    handleReset = () => {
+        // Resets all cells to empty string
+        this.setState({cells: this.initCells()});
+        this.backtrackCount = 0;
+    }
+
+    handleChange = (row,col,newVal) => { 
+        // Invoked when there is a change in value in any of the cells
         let newArray = JSON.parse(JSON.stringify(this.state.cells));
         
         newArray[row][col].val = newVal;
-
+        
         let updatedMatrix = this.checkAllCellsStability(newArray);
         this.setState({cells: updatedMatrix});
     }
 
     checkStability = (newArray, row, col) => {
+        // Check if a value in a given cell is consistency of all Sudoku rules
         if (newArray[row][col].val === "") {
             return newArray;
         }
@@ -96,6 +119,7 @@ class Grid extends Component{
     }
 
     checkAllCellsStability = (cellArray) => {
+        // Checks the consistency of all the cells
         for(let i = 0; i < 9; i++) {
             for (let j = 0; j< 9; j++) {
                 cellArray[i][j].unstable = false;
@@ -111,6 +135,7 @@ class Grid extends Component{
     }
 
     possibleNumbers = (tempArray, row, col) => {
+        // The potential numbers that can be filled in an empty cell at a given configuration
         if(tempArray[row][col].val !== "")
             return [];
         
@@ -132,8 +157,8 @@ class Grid extends Component{
         var block = tempArray[row][col].block;
 
         let [r, c] = this.block_starting_index[block];
-        for(let i=r;i<r+3;i++) {
-            for(let j=c;j<c+3;j++) {
+        for(let i = r; i < r+3; i++) {
+            for(let j = c;j < c+3; j++) {
                 index = available.indexOf(tempArray[i][j].val);
                 if (index > -1) {
                     available.splice(index, 1);
@@ -144,6 +169,7 @@ class Grid extends Component{
     }
 
     updateCellsAndPossible = (cell_n_p, cellsArray, row, col) => {
+        // Update the potential values that can be filled in a empty cell
         var cells_and_possible = JSON.parse(JSON.stringify(cell_n_p));
 
         for(let i = 0; i < 9; i++) {
@@ -158,8 +184,8 @@ class Grid extends Component{
 
         const block = cellsArray[row][col].block;
         const [r, c] = this.block_starting_index[block];
-        for(let i=r;i<r+3;i++) {
-            for(let j=c;j<c+3;j++) {
+        for(let i = r;i < r+3; i++) {
+            for(let j = c; j < c+3; j++) {
                 if(cellsArray[i][j].val === "")
                     cells_and_possible[i][j] = this.possibleNumbers(cellsArray, i, j);
             }
@@ -169,20 +195,35 @@ class Grid extends Component{
     }
 
     nextCellToSolve = (cells_and_possible,cells) => {
-        var min = 10, r = -1, c = -1;
-        for(let row=0;row<9;row++) {
-            for(let col=0;col<9;col++) {
-                if(cells_and_possible[row][col].length < min && cells[row][col].val === "") {
-                    min = cells_and_possible[row][col].length;
-                    r = row;
-                    c = col;
+        // If heuristics is toggled on, the next cell with the minimum number of potential numbers is selected.
+        // Else, the next empty cell along the row is selected for filling next.
+        if(this.state.useHeuristic) {
+            var min = 10, r = -1, c = -1;
+            for(let row=0;row<9;row++) {
+                for(let col=0;col<9;col++) {
+                    if(cells_and_possible[row][col].length < min && cells[row][col].val === "") {
+                        min = cells_and_possible[row][col].length;
+                        r = row;
+                        c = col;
+                    }
                 }
             }
+            return [r,c];
         }
-        return [r,c];
+        else{
+            for(let row=0;row<9;row++) {
+                for(let col=0;col<9;col++) {
+                    if(cells[row][col].val === "") {
+                        return [row, col];
+                    }
+                }
+            }
+            return [-1,-1];
+        }
     }
 
     generateCellsAndPossible = (cells) => {
+        // Generate a list of potential numbers that can be filled in all the cells
         var cells_and_possible = Array(9);
         for(let i = 0; i < 9;i++){
             cells_and_possible[i] = Array(9);
@@ -198,7 +239,9 @@ class Grid extends Component{
     }
 
     solvePuzzle = () => {
+        // Solves the puzzle by backtracking if a solution exists
         let cells = JSON.parse(JSON.stringify(this.state.cells));
+        this.backtrackCount = 0;
 
         for(let i = 0; i < 9; i++) {
             for(let j = 0; j < 9; j++) {
@@ -212,23 +255,23 @@ class Grid extends Component{
         var [nextr,nextc] = this.nextCellToSolve(cells_and_possible,cells);
         let [suc,newCells] = this.recursiveSolve(cells, cells_and_possible,nextr,nextc);
         if(suc) {
-            console.log(this.backtrackCount);
             this.setState({cells: newCells});
         }
         else{
-            alert("No solutions exist")
+            alert("No solutions exist");
         }
     }
     
     recursiveSolve(cellsArray, cells_n_p, r, c) {
+        // Fills a given cell with a potential number and recursively fill the next cell.
+        // If there are no potential numbers, then backtracks.
+
         this.backtrackCount = this.backtrackCount + 1;
-        console.log(this.backtrackCount)
         var nextr, nextc;
         var cells = JSON.parse(JSON.stringify(cellsArray));
         var cells_and_possible = JSON.parse(JSON.stringify(cells_n_p));
 
         if(r === -1 || c === -1) {
-            //this.setState({cells: cells});
             return [true,cells];
         }
 
@@ -245,11 +288,13 @@ class Grid extends Component{
                 return [true, newCells];
             }
         };
-        //console.log(`Failed at ${r}, ${c}`);
+
         return [false, cells];
     }
 
     generatePuzzle = () => {
+        // Five numbers are randomly filled without breaking the consistency and then the sudoku is solved.
+        // After solving, a random number of cells are emptied
         var rows = Array(10);
         var cols = Array(10);
 
@@ -283,6 +328,7 @@ class Grid extends Component{
                 randC = Math.floor(Math.random() * 9);
                 newCells[randR][randC].val = "";
             }
+            this.backtrackCount = 0;
             this.setState({cells: newCells});
         }
         else{
@@ -293,26 +339,39 @@ class Grid extends Component{
     render() {
         return(
             <div className="Container">
+                <div onChange={this.toggleHeuristic.bind(this)} className="Heuristic">
+                    <p>Use heuristic:</p>
+                    <input type="radio" value="YES" name="heuristic" defaultChecked className="child"/> YES
+                    <input type="radio" value="NO" name="heuristic" className="child"/> NO
+                </div>
+                <div>
                 {
                     [...Array(9).keys()].map( (r) => {
-                        return <div style={{display:'flex'}} className="box">
-                        {
-                        [...Array(9).keys()].map( (c) => {
-                            let details = {...this.state.cells[r][c]};
-                            return <Cell
-                                    row={r} 
-                                    col={c}
-                                    unstable={details.unstable}
-                                    onChange={this.handleChange}
-                                    val={details.val}
-                                    />
-                        })
-                        }
+                        return (
+                        <div className="Column">
+                            {
+                                [...Array(9).keys()].map( (c) => {
+                                    let details = {...this.state.cells[r][c]};
+                                    return <Cell
+                                            row={r} 
+                                            col={c}
+                                            unstable={details.unstable}
+                                            onChange={this.handleChange}
+                                            val={details.val}
+                                            />
+                                })
+                            }
                         </div>
+                        );
                     })
                 }
-                <button onClick = {() => this.solvePuzzle()}>Solve</button>
-                <button onClick = {() => this.generatePuzzle()}>Generate puzzle</button>
+                </div>
+                <div className="Buttons">
+                    <button onClick = {() => this.solvePuzzle()} className="solve">Solve</button>
+                    <button onClick = {() => this.generatePuzzle()} className="generate">Generate puzzle</button>
+                    <button onClick = {() => this.handleReset()} className="reset">Reset</button>
+                </div>
+                <p>Number of backtracks: <b>{this.backtrackCount>0 ? this.backtrackCount -1: ""}</b></p>
             </div>
         )
     }
